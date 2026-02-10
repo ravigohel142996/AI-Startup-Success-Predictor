@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 from plotly.subplots import make_subplots
 
+# Constants
+PROJECTION_MONTHS = 13  # Number of months for trajectory projection (0-12)
+
 
 def create_probability_chart(probabilities):
     """
@@ -292,7 +295,7 @@ def create_success_trajectory_chart(success_score):
     Returns:
         plotly figure object
     """
-    months = list(range(0, 13))
+    months = list(range(0, PROJECTION_MONTHS))
     
     # Generate trajectories based on success score
     if success_score >= 70:

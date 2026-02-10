@@ -6,6 +6,10 @@ Provides advanced analytics and benchmark data
 import numpy as np
 from datetime import datetime, timedelta
 
+# Constants for financial calculations
+COST_PER_EMPLOYEE = 5000  # Estimated monthly cost per employee
+OPERATIONAL_OVERHEAD = 1.2  # Operational overhead multiplier (20%)
+
 
 def get_benchmark_data(prediction_label):
     """
@@ -313,8 +317,7 @@ def calculate_runway_months(features):
         dict: Runway analysis
     """
     # Estimate monthly burn rate (simplified)
-    # Assume $5k per employee + 20% operational overhead
-    monthly_burn = (features['team_size'] * 5000) * 1.2
+    monthly_burn = (features['team_size'] * COST_PER_EMPLOYEE) * OPERATIONAL_OVERHEAD
     monthly_net = features['revenue'] - monthly_burn
     
     if monthly_net >= 0:

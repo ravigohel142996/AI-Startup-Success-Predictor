@@ -36,6 +36,14 @@ from data_export import (
     format_csv_download
 )
 
+# Constants for visualization tabs
+VIZ_TAB_LABELS = [
+    "📊 Probability Chart", 
+    "🎯 Success Gauge", 
+    "📉 Trajectory",
+    "🔍 Comparison"
+]
+
 # Page configuration
 st.set_page_config(
     page_title="AI Startup Success Predictor",
@@ -281,12 +289,7 @@ def main():
         st.subheader("📈 Interactive Visualizations")
         
         # Create tabs for different visualizations
-        viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
-            "📊 Probability Chart", 
-            "🎯 Success Gauge", 
-            "📉 Trajectory",
-            "🔍 Comparison"
-        ])
+        viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs(VIZ_TAB_LABELS)
         
         with viz_tab1:
             st.plotly_chart(
