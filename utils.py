@@ -105,10 +105,6 @@ def get_strategy_suggestions(prediction_label, features):
         suggestions.append("💡 Focus on lean operations and validated learning")
         suggestions.append("🤝 Seek mentorship and advisory support")
     
-    # If no suggestions, add generic positive message
-    if not suggestions:
-        suggestions.append("Keep iterating and focusing on customer needs!")
-    
     return suggestions[:5]  # Return max 5 suggestions
 
 

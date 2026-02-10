@@ -6,8 +6,6 @@ This module trains a RandomForest classifier and provides prediction functionali
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-import pickle
-import os
 
 
 class StartupSuccessModel:
