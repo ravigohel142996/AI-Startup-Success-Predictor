@@ -5,13 +5,35 @@ A modern web app for predicting startup success using machine learning
 
 import streamlit as st
 import time
-from model import predict_startup_success
+from datetime import datetime
+from model import predict_startup_success, get_model
 from utils import (
     validate_inputs, 
     get_strategy_suggestions, 
     format_currency,
     get_success_color,
     get_score_color
+)
+from visualizations import (
+    create_probability_chart,
+    create_success_gauge,
+    create_feature_comparison_chart,
+    create_feature_impact_chart,
+    create_success_trajectory_chart
+)
+from analytics import (
+    get_benchmark_data,
+    calculate_feature_importance,
+    generate_insights,
+    calculate_runway_months,
+    generate_comparison_metrics
+)
+from data_export import (
+    prepare_export_data,
+    create_csv_export,
+    create_json_export,
+    create_detailed_report_text,
+    format_csv_download
 )
 
 # Page configuration
@@ -254,6 +276,141 @@ def main():
                 value=f"{result['probabilities']['high']}%"
             )
         
+        # Visualizations
+        st.markdown("---")
+        st.subheader("📈 Interactive Visualizations")
+        
+        # Create tabs for different visualizations
+        viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+            "📊 Probability Chart", 
+            "🎯 Success Gauge", 
+            "📉 Trajectory",
+            "🔍 Comparison"
+        ])
+        
+        with viz_tab1:
+            st.plotly_chart(
+                create_probability_chart(result['probabilities']),
+                use_container_width=True
+            )
+        
+        with viz_tab2:
+            st.plotly_chart(
+                create_success_gauge(result['success_score']),
+                use_container_width=True
+            )
+        
+        with viz_tab3:
+            st.plotly_chart(
+                create_success_trajectory_chart(result['success_score']),
+                use_container_width=True
+            )
+            st.caption("📝 This projection shows potential growth scenarios based on your current success score")
+        
+        with viz_tab4:
+            benchmark_data = get_benchmark_data(result['prediction_label'])
+            st.plotly_chart(
+                create_feature_comparison_chart(features, benchmark_data),
+                use_container_width=True
+            )
+            st.caption("📝 Compare your metrics against industry benchmarks for your prediction category")
+        
+        st.markdown("---")
+        
+        # Advanced Analytics
+        st.subheader("🔬 Advanced Analytics")
+        
+        # Generate insights
+        insights = generate_insights(features, result['prediction_label'], result['success_score'])
+        
+        # Display insights in columns
+        insight_col1, insight_col2 = st.columns(2)
+        
+        with insight_col1:
+            st.markdown("**💪 Key Strengths**")
+            if insights['strengths']:
+                for strength in insights['strengths'][:3]:
+                    st.success(f"**{strength['factor']}**: {strength['description']}")
+            else:
+                st.info("Focus on building fundamental strengths")
+            
+            st.markdown("**💰 Financial Health**")
+            runway = calculate_runway_months(features)
+            if isinstance(runway['runway_months'], str):
+                st.success(f"✅ {runway['runway_months']}")
+            else:
+                color_map = {
+                    'Excellent': 'success',
+                    'Healthy': 'success',
+                    'Adequate': 'info',
+                    'Concerning': 'warning',
+                    'Critical': 'error'
+                }
+                st_method = getattr(st, color_map.get(runway['status'], 'info'))
+                st_method(f"**Estimated Runway:** {runway['runway_months']} months ({runway['status']})")
+        
+        with insight_col2:
+            st.markdown("**⚠️ Risk Factors**")
+            if insights['risk_factors']:
+                for risk in insights['risk_factors'][:3]:
+                    severity_emoji = {
+                        'Critical': '🔴',
+                        'High': '🟠',
+                        'Medium': '🟡',
+                        'Low': '🟢'
+                    }
+                    emoji = severity_emoji.get(risk['severity'], '⚪')
+                    st.warning(f"{emoji} **{risk['factor']}**: {risk['description']}")
+            else:
+                st.success("No major risk factors identified!")
+            
+            st.markdown("**📊 Efficiency Metrics**")
+            st.info(f"**Funding Adequacy:** {insights['funding_adequacy']['status']} ({insights['funding_adequacy']['score']}/100)")
+            st.info(f"**Team Efficiency:** {insights['team_efficiency']['status']} ({insights['team_efficiency']['score']}/100)")
+        
+        # Feature Importance
+        st.markdown("---")
+        st.subheader("🎯 Feature Impact Analysis")
+        
+        model = get_model()
+        feature_importance = calculate_feature_importance(model.model)
+        
+        col_a, col_b = st.columns([2, 1])
+        with col_a:
+            st.plotly_chart(
+                create_feature_impact_chart(feature_importance),
+                use_container_width=True
+            )
+        with col_b:
+            st.markdown("**What This Shows:**")
+            st.write("This chart displays which features have the most impact on the prediction model's decisions.")
+            st.write("Higher percentages indicate features that more strongly influence your success score.")
+        
+        # Comparison with typical startups
+        st.markdown("---")
+        st.subheader("📊 Comparative Analysis")
+        
+        comparisons = generate_comparison_metrics(features)
+        comp_cols = st.columns(5)
+        
+        metrics_display = [
+            ('funding', 'Funding', '💰'),
+            ('team_size', 'Team', '👥'),
+            ('market_size', 'Market', '🎯'),
+            ('revenue', 'Revenue', '💵'),
+            ('growth_rate', 'Growth', '📈')
+        ]
+        
+        for idx, (key, label, emoji) in enumerate(metrics_display):
+            with comp_cols[idx]:
+                comp = comparisons[key]
+                st.metric(
+                    label=f"{emoji} {label}",
+                    value=f"{comp['ratio']}x",
+                    delta=comp['status'],
+                    help=f"Your value vs typical startup"
+                )
+        
         st.markdown("---")
         
         # Strategy suggestions
@@ -277,6 +434,49 @@ def main():
             with summary_col2:
                 st.write(f"**Monthly Revenue:** {format_currency(revenue)}")
                 st.write(f"**Growth Rate:** {growth_rate}%")
+        
+        # Export functionality
+        st.markdown("---")
+        st.subheader("📥 Export Analysis")
+        
+        export_col1, export_col2, export_col3 = st.columns(3)
+        
+        with export_col1:
+            # CSV Export
+            csv_data = create_csv_export(features, result)
+            csv_string = format_csv_download(csv_data)
+            st.download_button(
+                label="📊 Download CSV",
+                data=csv_string,
+                file_name=f"startup_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                help="Download results as CSV file"
+            )
+        
+        with export_col2:
+            # JSON Export
+            export_data = prepare_export_data(features, result, insights)
+            json_string = create_json_export(export_data)
+            st.download_button(
+                label="📋 Download JSON",
+                data=json_string,
+                file_name=f"startup_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                help="Download results as JSON file"
+            )
+        
+        with export_col3:
+            # Text Report Export
+            report_text = create_detailed_report_text(features, result, insights)
+            st.download_button(
+                label="📄 Download Report",
+                data=report_text,
+                file_name=f"startup_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                help="Download detailed text report"
+            )
+        
+        st.markdown("---")
         
         # Success message
         if result['success_score'] >= 70:
